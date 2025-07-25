@@ -42,6 +42,8 @@ function BuildingDashboard({ building, onBack }) {
         console.log('SignalR connected');
 
         connection.on('ElevatorUpdated', (updatedElevator) => {
+          console.log("Direction from server:", updatedElevator.direction);
+
           setElevators((prev) =>
             prev.map((e) =>
               e.id === updatedElevator.elevatorId
@@ -158,23 +160,25 @@ function BuildingDashboard({ building, onBack }) {
                     <div><strong>Direction:</strong> {DirectionMap[elevator.direction]}</div>
                     <div><strong>Door:</strong> {elevator.doorStatus === 1 ? 'Open' : 'Closed'}</div>
 
-                    {elevator.status === 'WaitingForDestination' && elevator.lastCallId && (
-                      <div style={{ marginTop: '6px' }}>
-                        {[...Array(building.numberOfFloors)].map((_, targetFloor) => (
-                          targetFloor !== elevator.currentFloor && (
-                            <button
-                              key={targetFloor}
-                              style={{ margin: '2px', fontSize: '12px' }}
-                              onClick={() =>
-                                handleDestinationSelect(
-                                  elevator.lastCallId,
-                                  targetFloor,
-                                  elevator.id
-                                )
-                              }
-                            >
-                              {targetFloor}
-                            </button>
+{elevator.status === 'WaitingForDestination' && elevator.lastCallId && (
+  <div style={{ marginTop: '6px' }}>
+    {[...Array(building.numberOfFloors)].map((_, targetFloor) => (
+      targetFloor !== elevator.currentFloor &&
+      ((elevator.direction === 'Up' && targetFloor > elevator.currentFloor) ||
+        (elevator.direction === 'Down' && targetFloor < elevator.currentFloor)) && (
+        <button
+          key={targetFloor}
+          style={{ margin: '2px', fontSize: '12px' }}
+          onClick={() =>
+            handleDestinationSelect(
+              elevator.lastCallId,
+              targetFloor,
+              elevator.id
+            )
+          }
+        >
+          {targetFloor}
+        </button>
                           )
                         ))}
                       </div>
