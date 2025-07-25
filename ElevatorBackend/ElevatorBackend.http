@@ -1,0 +1,6 @@
+@ElevatorBackend_HostAddress = http://localhost:5131
+
+GET {{ElevatorBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
