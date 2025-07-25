@@ -99,17 +99,30 @@ public class ElevatorService
 
 
                 // לאחר הפתיחה: הסרת הבקשה שנמצאת בקומה הזו
+                // ננסה להסיר גם Regular וגם Destination
                 var requestToRemove = elevator.AllRequests
                     .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Type == RequestType.Regular);
+                var destinationToRemoveAtArrival = elevator.AllRequests
+                    .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Type == RequestType.Destination);
+
 
                 if (requestToRemove != null)
                 {
                     elevator.AllRequests.Remove(requestToRemove);
                     dbContext.ElevatorRequests.Remove(requestToRemove);
+                    elevator.Status = ElevatorStatus.WaitingForDestination;
+                }
+                else if (destinationToRemoveAtArrival != null)
+                {
+                    elevator.AllRequests.Remove(destinationToRemoveAtArrival);
+                    dbContext.ElevatorRequests.Remove(destinationToRemoveAtArrival);
+                    elevator.Status = ElevatorStatus.Idle;
+                    elevator.Direction = Direction.None;
+                    elevator.DoorStatus = DoorStatus.Closed;
                 }
 
-                elevator.Status = ElevatorStatus.WaitingForDestination;
-                Console.WriteLine($"[SERVER] Elevator {elevator.Id} status → WaitingForDestination");
+                Console.WriteLine($"[SERVER] Elevator {elevator.Id} status → {elevator.Status}");
+
                 await Task.Delay(1500);
 
                 await dbContext.SaveChangesAsync();
@@ -157,6 +170,7 @@ public class ElevatorService
             await Task.Delay(2000);
 
             bool shouldStop = false;
+            bool isDestination = false;
 
             var regularToRemove = elevator.AllRequests
                 .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Type == RequestType.Regular);
@@ -173,14 +187,28 @@ public class ElevatorService
 
             if (destinationToRemove != null)
             {
+                Console.WriteLine($"[SERVER] Reached Destination Floor {elevator.CurrentFloor}");
                 elevator.AllRequests.Remove(destinationToRemove);
                 dbContext.ElevatorRequests.Remove(destinationToRemove);
                 shouldStop = true;
+                isDestination = true;
             }
 
             if (shouldStop)
             {
-                OpenAndChooseFloor(elevator);
+                if (isDestination)
+                {
+                    // חזרנו מיעד - חוזרים למצב התחלתי
+                    elevator.Status = ElevatorStatus.Idle;
+                    elevator.Direction = Direction.None;
+                    elevator.DoorStatus = DoorStatus.Closed;
+                }
+
+                else
+                {
+                    // עצירה של קריאה - פותחים דלתות ומחכים ליעד
+                    OpenAndChooseFloor(elevator);
+                }
 
                 lastCallId = _dbContext.ElevatorCallAssignments
                     .Where(a => a.ElevatorId == elevator.Id)
