@@ -155,10 +155,12 @@ function BuildingDashboard({ building, onBack }) {
                       fontSize: '12px',
                     }}
                   >
-                    <div><strong>ID:</strong> {elevator.id}</div>
-                    <div><strong>Status:</strong> {ElevatorStatusMap[elevator.status]}</div>
-                    <div><strong>Direction:</strong> {DirectionMap[elevator.direction]}</div>
-                    <div><strong>Door:</strong> {elevator.doorStatus === 1 ? 'Open' : 'Closed'}</div>
+<div><strong>ID:</strong> {elevator.id}</div>
+<div><strong>Floor:</strong> {elevator.currentFloor}</div>
+<div><strong>Status:</strong> {elevator.status}</div>
+<div><strong>Direction:</strong> {elevator.direction}</div>
+
+
 
 {elevator.status === 'WaitingForDestination' && elevator.lastCallId && (
   <div style={{ marginTop: '6px' }}>
