@@ -1,0 +1,36 @@
+# Ignore Visual Studio files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+# ASP.NET
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Rider
+.idea/
+
+# Node (frontend)
+node_modules/
+dist/
+
+# Environment files
+.env
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/

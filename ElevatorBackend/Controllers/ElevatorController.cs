@@ -4,7 +4,6 @@ using ElevatorBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 
-
 namespace ElevatorBackend.Controllers
 {
     [ApiController]
@@ -13,12 +12,10 @@ namespace ElevatorBackend.Controllers
     {
         private readonly ElevatorService _elevatorService;
 
-
         public ElevatorController(ElevatorService elevatorService)
         {
             _elevatorService = elevatorService;
         }
-
 
         [HttpGet]
         public ActionResult<List<ElevatorDto>> GetAll()
@@ -36,61 +33,6 @@ namespace ElevatorBackend.Controllers
 
             return Ok(dtoList);
         }
-
-
-        [HttpPost]
-        public ActionResult<ElevatorDto> CreateElevator(ElevatorCreateDto dto)
-        {
-            var newElevator = new Elevator
-            {
-                
-                BuildingId = dto.BuildingId,
-                CurrentFloor = 0,
-                Status = ElevatorStatus.Idle,
-                Direction = Direction.None,
-                DoorStatus = DoorStatus.Closed,
-
-
-            };
-
-            _elevatorService.AddElevator(newElevator); 
-
-            var response = new ElevatorDto
-            {
-                Id = newElevator.Id, 
-                BuildingId = newElevator.BuildingId,
-                CurrentFloor = newElevator.CurrentFloor,
-                Status = newElevator.Status,
-                Direction = newElevator.Direction,
-                DoorStatus = newElevator.DoorStatus
-            };
-
-            return CreatedAtAction(nameof(GetAll), new { id = newElevator.Id }, response);
-        }
-
-
-
-        [HttpPost("{id}/move")]
-        public IActionResult MoveToFloor(int id, [FromQuery] int floor)
-        {
-            var elevator = _elevatorService.GetById(id);
-            if (elevator == null)
-                return NotFound();
-
-            _elevatorService.RequestElevator(id, floor);
-            var dto = new ElevatorDto
-            {
-                Id = elevator.Id,
-                BuildingId = elevator.BuildingId,
-                CurrentFloor = elevator.CurrentFloor,
-                Status = elevator.Status,
-                Direction = elevator.Direction,
-                DoorStatus = elevator.DoorStatus
-            };
-
-            return Ok(dto);
-        }
-        
 
         [HttpGet("{id}")]
         public ActionResult<ElevatorDto> GetById(int id)
@@ -135,54 +77,31 @@ namespace ElevatorBackend.Controllers
             return Ok(dtoList);
         }
 
-
-        [HttpPost("{id}/request")]
-        public IActionResult RequestElevator(int id, [FromQuery] int floor)
+        [HttpPost]
+        public ActionResult<ElevatorDto> CreateElevator(ElevatorCreateDto dto)
         {
-            var elevator = _elevatorService.GetById(id);
-            if (elevator == null)
-                return NotFound();
-
-            _elevatorService.RequestElevator(id, floor);
-
-            var dto = new ElevatorDto
+            var newElevator = new Elevator
             {
-                Id = elevator.Id,
-                BuildingId = elevator.BuildingId,
-                CurrentFloor = elevator.CurrentFloor,
-                Status = elevator.Status,
-                Direction = elevator.Direction,
-                DoorStatus = elevator.DoorStatus
+                BuildingId = dto.BuildingId,
+                CurrentFloor = 0,
+                Status = ElevatorStatus.Idle,
+                Direction = Direction.None,
+                DoorStatus = DoorStatus.Closed,
             };
 
-            return Ok(dto);
+            _elevatorService.AddElevator(newElevator);
+
+            var response = new ElevatorDto
+            {
+                Id = newElevator.Id,
+                BuildingId = newElevator.BuildingId,
+                CurrentFloor = newElevator.CurrentFloor,
+                Status = newElevator.Status,
+                Direction = newElevator.Direction,
+                DoorStatus = newElevator.DoorStatus
+            };
+
+            return CreatedAtAction(nameof(GetAll), new { id = newElevator.Id }, response);
         }
-
-
-
-        [HttpPost("{id}/select")]
-        public IActionResult SelectFloor(int id, [FromQuery] int floor)
-        {
-            var elevator = _elevatorService.GetById(id);
-            if (elevator == null)
-                return NotFound();
-
-            _elevatorService.SelectFloor(id, floor);
-            var dto = new ElevatorDto
-            {
-                Id = elevator.Id,
-                BuildingId = elevator.BuildingId,
-                CurrentFloor = elevator.CurrentFloor,
-                Status = elevator.Status,
-                Direction = elevator.Direction,
-                DoorStatus = elevator.DoorStatus
-            };
-
-            return Ok(dto);
-        
-    }
-
-
-
     }
 }

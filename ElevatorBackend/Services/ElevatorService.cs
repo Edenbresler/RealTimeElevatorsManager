@@ -50,6 +50,8 @@ public class ElevatorService
 
         if (elevator == null)
             return;
+        int? lastCallId = null;
+
         Console.WriteLine($"[Check] Requests: {elevator.Requests.Count}, Destination: {elevator.DestinationRequests.Count}");
 
         while (elevator.Requests.Any() || elevator.DestinationRequests.Any())
@@ -58,15 +60,101 @@ public class ElevatorService
                 ? elevator.Requests.First().Floor
                 : elevator.DestinationRequests.First().Floor;
 
-            elevator.Direction = targetFloor > elevator.CurrentFloor ? Direction.Up : Direction.Down;
-            elevator.Status = elevator.Direction == Direction.Up ? ElevatorStatus.MovingUp : ElevatorStatus.MovingDown;
+            // חישוב כיוון
+            if (targetFloor > elevator.CurrentFloor)
+            {
+                elevator.Direction = Direction.Up;
+                elevator.Status = ElevatorStatus.MovingUp;
+            }
+            else if (targetFloor < elevator.CurrentFloor)
+            {
+                elevator.Direction = Direction.Down;
+                elevator.Status = ElevatorStatus.MovingDown;
+            }
+            else // ❗ elevator already at the target floor
+            {
+                Console.WriteLine($"[Move] Elevator {elevator.Id} already at floor {elevator.CurrentFloor}");
 
+
+                lastCallId = _dbContext.ElevatorCallAssignments
+                    .Where(a => a.ElevatorId == elevator.Id)
+                    .OrderByDescending(a => a.AssignmentTime)
+                    .Select(a => (int?)a.ElevatorCallId)
+                    .FirstOrDefault();
+
+
+
+
+                await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
+                {
+                    ElevatorId = elevator.Id,
+                    CurrentFloor = elevator.CurrentFloor,
+                    Direction = elevator.Direction.ToString(),
+                    Status = elevator.Status.ToString(),
+                    DoorStatus = elevator.DoorStatus.ToString(),
+                    LastCallId = lastCallId
+                });
+
+                await Task.Delay(500); // זמן פתיחה לצורך הדמיה
+
+
+                // לאחר הפתיחה: הסרת הבקשה שנמצאת בקומה הזו
+                var requestToRemove = elevator.AllRequests
+                    .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Type == RequestType.Regular);
+
+                if (requestToRemove != null)
+                {
+                    elevator.AllRequests.Remove(requestToRemove);
+                    dbContext.ElevatorRequests.Remove(requestToRemove);
+                }
+
+                elevator.Status = ElevatorStatus.WaitingForDestination;
+                Console.WriteLine($"[SERVER] Elevator {elevator.Id} status → WaitingForDestination");
+                await Task.Delay(1500);
+
+                await dbContext.SaveChangesAsync();
+
+                lastCallId = _dbContext.ElevatorCallAssignments
+                    .Where(a => a.ElevatorId == elevator.Id)
+                    .OrderByDescending(a => a.AssignmentTime)
+                    .Select(a => (int?)a.ElevatorCallId)
+                    .FirstOrDefault();
+
+
+                await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
+                {
+                    ElevatorId = elevator.Id,
+                    CurrentFloor = elevator.CurrentFloor,
+                    Direction = elevator.Direction.ToString(),
+                    Status = elevator.Status.ToString(),
+                    DoorStatus = elevator.DoorStatus.ToString(),
+                    LastCallId = lastCallId
+                });
+
+                break; // נחכה להזנת יעד מהנוסע – לא ממשיכים תנועה בשלב הזה
+            }
+
+            // תזוזה בפועל
             elevator.CurrentFloor += elevator.Direction == Direction.Up ? 1 : -1;
 
-            Console.WriteLine($"[Move] Elevator {elevator.Id} moved to floor {elevator.CurrentFloor}");
+            lastCallId = _dbContext.ElevatorCallAssignments
+                .Where(a => a.ElevatorId == elevator.Id)
+                .OrderByDescending(a => a.AssignmentTime)
+                .Select(a => (int?)a.ElevatorCallId)
+                .FirstOrDefault();
 
-            await _hubContext.Clients.All.SendAsync("ElevatorUpdated", elevator);
-            await Task.Delay(200);
+
+            await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
+            {
+                ElevatorId = elevator.Id,
+                CurrentFloor = elevator.CurrentFloor,
+                Direction = elevator.Direction.ToString(),
+                Status = elevator.Status.ToString(),
+                DoorStatus = elevator.DoorStatus.ToString(),
+                LastCallId = lastCallId
+            });
+
+            await Task.Delay(2000);
 
             bool shouldStop = false;
 
@@ -77,11 +165,9 @@ public class ElevatorService
             {
                 elevator.AllRequests.Remove(regularToRemove);
                 dbContext.ElevatorRequests.Remove(regularToRemove);
-
                 shouldStop = true;
             }
 
-            // Destination request
             var destinationToRemove = elevator.AllRequests
                 .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Type == RequestType.Destination);
 
@@ -94,29 +180,69 @@ public class ElevatorService
 
             if (shouldStop)
             {
-                OpenAndCloseDoors(elevator);
-                await _hubContext.Clients.All.SendAsync("ElevatorUpdated", elevator);
+                OpenAndChooseFloor(elevator);
+
+                lastCallId = _dbContext.ElevatorCallAssignments
+                    .Where(a => a.ElevatorId == elevator.Id)
+                    .OrderByDescending(a => a.AssignmentTime)
+                    .Select(a => (int?)a.ElevatorCallId)
+                    .FirstOrDefault();
+
+
+                await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
+                {
+                    ElevatorId = elevator.Id,
+                    CurrentFloor = elevator.CurrentFloor,
+                    Direction = elevator.Direction.ToString(),
+                    Status = elevator.Status.ToString(),
+                    DoorStatus = elevator.DoorStatus.ToString(),
+                    LastCallId = lastCallId
+                });
             }
-
+            await Task.Delay(1500);
             await dbContext.SaveChangesAsync();
-
         }
 
-        elevator.Status = ElevatorStatus.Idle;
-        elevator.Direction = Direction.None;
-        _dbContext.SaveChanges();
-        await _hubContext.Clients.All.SendAsync("ElevatorUpdated", elevator);
+        if (elevator.Status != ElevatorStatus.WaitingForDestination)
+        {
+            elevator.Status = ElevatorStatus.Idle;
+            elevator.Direction = Direction.None;
+            await dbContext.SaveChangesAsync();
+        }
+        Console.WriteLine($"[SignalR] Sending Elevator Update: ID={elevator.Id}, Status={elevator.Status}, StatusStr={elevator.Status.ToString()}");
+        Console.WriteLine($"[SERVER] Final status for elevator {elevator.Id}: {elevator.Status}");
+
+         lastCallId = _dbContext.ElevatorCallAssignments
+            .Where(a => a.ElevatorId == elevator.Id)
+            .OrderByDescending(a => a.AssignmentTime)
+            .Select(a => (int?)a.ElevatorCallId)
+            .FirstOrDefault();
+
+
+        await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
+        {
+
+            ElevatorId = elevator.Id,
+            CurrentFloor = elevator.CurrentFloor,
+            Direction = elevator.Direction.ToString(),
+            Status = elevator.Status.ToString(),
+            DoorStatus = elevator.DoorStatus.ToString(),
+            LastCallId = lastCallId
+        });
     }
 
-    private void OpenAndCloseDoors(Elevator elevator)
+
+    private void OpenAndChooseFloor(Elevator elevator)
     {
         elevator.Status = ElevatorStatus.OpeningDoors;
         elevator.DoorStatus = DoorStatus.Open;
-        Thread.Sleep(300);
+        Thread.Sleep(3000);
 
-        elevator.DoorStatus = DoorStatus.Closed;
-        elevator.Status = ElevatorStatus.ClosingDoors;
-        Thread.Sleep(300);
+        elevator.Status = ElevatorStatus.WaitingForDestination;
+        Console.WriteLine($"[SERVER] Elevator {elevator.Id} status → WaitingForDestination");
+
+
+
     }
 
     public void RequestElevator(int elevatorId, int floor)

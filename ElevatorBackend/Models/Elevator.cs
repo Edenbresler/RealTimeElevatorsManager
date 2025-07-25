@@ -9,7 +9,8 @@ namespace ElevatorBackend.Models
         MovingUp,
         MovingDown,
         OpeningDoors,
-        ClosingDoors
+        ClosingDoors,
+        WaitingForDestination
     }
 
     public enum Direction

@@ -78,15 +78,19 @@ namespace ElevatorBackend.Services
 
                 // 🟢 שלב 2: הפעלת מעליות
                 foreach (var elevator in elevatorService.GetElevatorsWithRequests())
+
                 {
+
                     Console.WriteLine($"[Simulation] Elevator {elevator.Id} has {elevator.AllRequests.Count} total requests");
 
-                    Console.WriteLine($"[Simulation] Starting move check for elevator {elevator.Id} (floor {elevator.CurrentFloor})");
+                    Console.WriteLine($"[Simulation] Requests count for elevator {elevator.Id}: {elevator.AllRequests.Count}");
+                    Console.WriteLine($"[Sim] Elevator {elevator.Id} → Status: {elevator.Status}, Requests: {elevator.Requests.Count}, Destinations: {elevator.DestinationRequests.Count}");
 
-                    Console.WriteLine($"→ Elevator {elevator.Id} Requests: {elevator.Requests.Count}");
-                    Console.WriteLine($"→ Elevator {elevator.Id} DestinationRequests: {elevator.DestinationRequests.Count}");
-              
 
+                    foreach (var req in elevator.AllRequests)
+                    {
+                        Console.WriteLine($"→ Request: Floor={req.Floor}, Type={req.Type}, Direction={req.Direction}");
+                    }
 
                     _ = Task.Run(() => elevatorService.MoveToFloor(elevator.Id));
 

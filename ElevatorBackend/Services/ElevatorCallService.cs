@@ -2,6 +2,7 @@
 using ElevatorBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace ElevatorBackend.Services
 {
     public class ElevatorCallService : IElevatorCallService
@@ -21,11 +22,15 @@ namespace ElevatorBackend.Services
 
             // Assign elevator immediately after saving the call
             var assignmentService = new ElevatorCallAssignmentService(_context);
-            await assignmentService.AssignElevatorToCallAsync(new ElevatorCallAssignment
+            var assignment = new ElevatorCallAssignment
             {
-                ElevatorCallId = call.Id
-            });
+                ElevatorCallId = call.Id,
+                AssignmentTime = DateTime.UtcNow
+            };
+
+            await assignmentService.AssignElevatorToCallAsync(assignment);
         }
+
 
 
         public async Task<bool> UpdateDestinationFloorAsync(int callId, int destinationFloor)

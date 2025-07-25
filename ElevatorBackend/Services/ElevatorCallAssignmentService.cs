@@ -1,4 +1,5 @@
-﻿using ElevatorBackend.Data;
+﻿using Azure.Core;
+using ElevatorBackend.Data;
 using ElevatorBackend.Models;
 using ElevatorBackend.Services;
 using Microsoft.EntityFrameworkCore;
@@ -91,14 +92,16 @@ public class ElevatorCallAssignmentService : IElevatorCallAssignmentService
             var direction = call.RequestedFloor > selectedElevator.CurrentFloor ? Direction.Up :
                             call.RequestedFloor < selectedElevator.CurrentFloor ? Direction.Down : Direction.None;
 
-            selectedElevator.AddRequest(new ElevatorRequest
+            var request = new ElevatorRequest
             {
                 ElevatorId = selectedElevator.Id,
                 Elevator = selectedElevator,
                 Floor = call.RequestedFloor,
                 Direction = direction,
                 Type = RequestType.Regular
-            });
+            };
+            selectedElevator.AddRequest(request); // רק בזיכרון
+            _context.ElevatorRequests.Add(request); // זה מה ששומר במסד הנתונים
 
             // עדכון סטטוס למעלית אם היא הייתה במצב Idle
             if (selectedElevator.Status == ElevatorStatus.Idle)

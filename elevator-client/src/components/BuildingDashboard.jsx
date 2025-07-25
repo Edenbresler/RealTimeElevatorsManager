@@ -1,3 +1,4 @@
+// Updated UI labels to English and fixed destination input visibility
 import { useEffect, useState } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import axios from 'axios';
@@ -6,13 +7,15 @@ function BuildingDashboard({ building, onBack }) {
   const [elevators, setElevators] = useState([]);
   const [connection, setConnection] = useState(null);
   const [error, setError] = useState('');
+  const [destinationMap, setDestinationMap] = useState({});
 
   const ElevatorStatusMap = {
     0: 'Idle',
-    1: 'Moving',
-    2: 'DoorOpen',
-    3: 'Waiting',
+    1: 'MovingUp',
+    2: 'MovingDown',
+    3: 'OpeningDoors',
     4: 'ClosingDoors',
+    5: 'Waiting for Destination',
   };
 
   const DirectionMap = {
@@ -38,9 +41,13 @@ function BuildingDashboard({ building, onBack }) {
       .then(() => {
         console.log('SignalR connected');
 
-        connection.on('ElevatorStatusUpdated', (updatedElevator) => {
+        connection.on('ElevatorUpdated', (updatedElevator) => {
           setElevators((prev) =>
-            prev.map((e) => (e.id === updatedElevator.id ? updatedElevator : e))
+            prev.map((e) =>
+              e.id === updatedElevator.elevatorId
+                ? { ...e, ...updatedElevator }
+                : e
+            )
           );
         });
 
@@ -50,10 +57,8 @@ function BuildingDashboard({ building, onBack }) {
               `https://localhost:5001/api/Elevator/by-building/${building.id}`,
               { withCredentials: true }
             );
-            console.log('Elevator response:', response.data);
             setElevators(response.data?.$values || []);
           } catch (err) {
-            console.error('Failed to load elevators', err);
             setError('Failed to load elevators.');
           }
         };
@@ -61,25 +66,40 @@ function BuildingDashboard({ building, onBack }) {
         loadElevators();
       })
       .catch((err) => {
-        console.error('SignalR connection failed:', err);
         setError('Failed to connect to elevator system.');
       });
 
     return () => {
-      console.log('SignalR disconnected');
       connection.stop();
     };
   }, [connection, building.id]);
 
-  const requestElevator = async (floorNumber) => {
+  const requestElevator = async (floorNumber, direction) => {
     try {
       await axios.post('https://localhost:5001/api/ElevatorCall', {
         buildingId: building.id,
-        floor: floorNumber,
-        destinationFloor: floorNumber 
+        requestedFloor: floorNumber,
+        destinationFloor: floorNumber,
+        direction: direction
       });
     } catch (err) {
       setError('Failed to call elevator.');
+    }
+  };
+
+  const handleDestinationSelect = async (elevatorCallId, floor, elevatorId) => {
+    try {
+      await axios.put(
+        `https://localhost:5001/api/ElevatorCall/${elevatorCallId}/selectDestination`,
+        JSON.stringify(floor),
+        {
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+
+      setDestinationMap((prev) => ({ ...prev, [elevatorId]: '' }));
+    } catch (err) {
+      setError('Failed to select destination.');
     }
   };
 
@@ -92,7 +112,11 @@ function BuildingDashboard({ building, onBack }) {
 
       <div style={{ width: '600px', margin: 'auto' }}>
         {[...Array(building.numberOfFloors)].map((_, i) => {
-          const floor = building.numberOfFloors - i;
+          const floor = building.numberOfFloors - i - 1;
+          const elevatorsOnFloor = elevators.filter(
+            (e) => e.currentFloor === floor
+          );
+
           return (
             <div
               key={floor}
@@ -109,30 +133,54 @@ function BuildingDashboard({ building, onBack }) {
             >
               <div>
                 <p style={{ margin: '4px 0', fontSize: '18px' }}>Floor {floor}</p>
-                <button onClick={() => requestElevator(floor)}>Call</button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={() => requestElevator(floor, 1)}>Up</button>
+                  <button onClick={() => requestElevator(floor, 2)}>Down</button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                {elevators
-                  .filter((e) => e.currentFloor === floor)
-                  .map((elevator) => (
-                    <div
-                      key={elevator.id}
-                      style={{
-                        backgroundColor: '#2196f3',
-                        color: 'white',
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        minWidth: '90px',
-                        textAlign: 'center',
-                        fontSize: '12px',
-                      }}
-                    >
-                      <div><strong>ID:</strong> {elevator.id}</div>
-                      <div>{ElevatorStatusMap[elevator.status]}</div>
-                      <div>{DirectionMap[elevator.direction]}</div>
-                    </div>
-                  ))}
+                {elevatorsOnFloor.map((elevator) => (
+                  <div
+                    key={elevator.id}
+                    style={{
+                      backgroundColor: '#2196f3',
+                      color: 'white',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      minWidth: '140px',
+                      textAlign: 'center',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <div><strong>ID:</strong> {elevator.id}</div>
+                    <div><strong>Status:</strong> {ElevatorStatusMap[elevator.status]}</div>
+                    <div><strong>Direction:</strong> {DirectionMap[elevator.direction]}</div>
+                    <div><strong>Door:</strong> {elevator.doorStatus === 1 ? 'Open' : 'Closed'}</div>
+
+                    {elevator.status === 'WaitingForDestination' && elevator.lastCallId && (
+                      <div style={{ marginTop: '6px' }}>
+                        {[...Array(building.numberOfFloors)].map((_, targetFloor) => (
+                          targetFloor !== elevator.currentFloor && (
+                            <button
+                              key={targetFloor}
+                              style={{ margin: '2px', fontSize: '12px' }}
+                              onClick={() =>
+                                handleDestinationSelect(
+                                  elevator.lastCallId,
+                                  targetFloor,
+                                  elevator.id
+                                )
+                              }
+                            >
+                              {targetFloor}
+                            </button>
+                          )
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           );
