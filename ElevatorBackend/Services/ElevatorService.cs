@@ -61,9 +61,10 @@ public class ElevatorService
 
         while (elevator.Requests.Any() || elevator.DestinationRequests.Any())
         {
-            int? targetFloor = elevator.Requests.Any()
-                ? elevator.Requests.First().Floor
-                : elevator.DestinationRequests.First().Floor;
+            int? targetFloor = elevator.DestinationRequests.Any()
+                ? elevator.DestinationRequests.First().Floor
+                : elevator.Requests.FirstOrDefault()?.Floor;
+
 
             // חישוב כיוון
             if (targetFloor > elevator.CurrentFloor)
@@ -357,7 +358,7 @@ public class ElevatorService
 
         _dbContext.SaveChanges();
 
-        if (elevator.Status == ElevatorStatus.Idle || elevator.Status == ElevatorStatus.WaitingForDestination)
+        if (elevator.Status == ElevatorStatus.Idle )
         {
             _ = Task.Run(() => MoveToFloor(elevatorId));
         }
