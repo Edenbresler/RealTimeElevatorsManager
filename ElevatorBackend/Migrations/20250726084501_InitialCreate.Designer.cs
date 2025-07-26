@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ElevatorBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250723094954_InitialCreate")]
+    [Migration("20250726084501_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -146,6 +146,9 @@ namespace ElevatorBackend.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("DestinationFloor")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Direction")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsHandled")

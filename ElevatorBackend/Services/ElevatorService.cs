@@ -50,6 +50,11 @@ public class ElevatorService
 
         if (elevator == null)
             return;
+        if (elevator.Status == ElevatorStatus.WaitingForDestination)
+        {
+            Console.WriteLine($"[SERVER] Elevator {elevator.Id} is waiting for destination. Skipping movement.");
+            return;
+        }
         int? lastCallId = null;
 
         Console.WriteLine($"[Check] Requests: {elevator.Requests.Count}, Destination: {elevator.DestinationRequests.Count}");
@@ -111,6 +116,7 @@ public class ElevatorService
                     elevator.AllRequests.Remove(requestToRemove);
                     dbContext.ElevatorRequests.Remove(requestToRemove);
                     elevator.Status = ElevatorStatus.WaitingForDestination;
+                    Console.WriteLine($"[114 - SERVER] Elevator {elevator.Id} status → {elevator.Status}");
                 }
                 else if (destinationToRemoveAtArrival != null)
                 {
@@ -121,7 +127,7 @@ public class ElevatorService
                     elevator.DoorStatus = DoorStatus.Closed;
                 }
 
-                Console.WriteLine($"[SERVER] Elevator {elevator.Id} status → {elevator.Status}");
+                Console.WriteLine($"[125-SERVER] Elevator {elevator.Id} status → {elevator.Status}");
 
                 await Task.Delay(1500);
 
@@ -149,6 +155,28 @@ public class ElevatorService
 
             // תזוזה בפועל
             elevator.CurrentFloor += elevator.Direction == Direction.Up ? 1 : -1;
+
+            // נבדוק אם יש מישהו שרוצה להיכנס בקומה הזו, לפי כיוון התנועה
+            var pickupRequest = elevator.Requests
+                .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Direction == elevator.Direction);
+
+            if (pickupRequest != null)
+            {
+                Console.WriteLine($"[!!!!] CurrentFloor : {elevator.CurrentFloor} elevator Direction : {elevator.Direction} pickupRequest Direction :{pickupRequest.Direction}");
+                Console.WriteLine($"[SERVER] Picking up from floor {elevator.CurrentFloor} on the way");
+                elevator.AllRequests.Remove(pickupRequest);
+                dbContext.ElevatorRequests.Remove(pickupRequest);
+                elevator.Status = ElevatorStatus.WaitingForDestination;
+                Console.WriteLine($"[165- SERVER] Elevator {elevator.Id} status → {elevator.Status}");
+                elevator.DoorStatus = DoorStatus.Open;
+                await Task.Delay(1000);
+                elevator.DoorStatus = DoorStatus.Closed;
+
+                await dbContext.SaveChangesAsync();
+
+                break;
+            }
+
 
             lastCallId = _dbContext.ElevatorCallAssignments
                 .Where(a => a.ElevatorId == elevator.Id)
@@ -267,7 +295,7 @@ public class ElevatorService
         Thread.Sleep(3000);
 
         elevator.Status = ElevatorStatus.WaitingForDestination;
-        Console.WriteLine($"[SERVER] Elevator {elevator.Id} status → WaitingForDestination");
+        Console.WriteLine($"[291-SERVER] Elevator {elevator.Id} status → WaitingForDestination");
 
 
 
@@ -329,10 +357,11 @@ public class ElevatorService
 
         _dbContext.SaveChanges();
 
-        if (elevator.Status == ElevatorStatus.Idle)
+        if (elevator.Status == ElevatorStatus.Idle || elevator.Status == ElevatorStatus.WaitingForDestination)
         {
             _ = Task.Run(() => MoveToFloor(elevatorId));
         }
+
     }
 
     public List<Elevator> GetElevatorsWithRequests()

@@ -145,6 +145,9 @@ namespace ElevatorBackend.Migrations
                     b.Property<int?>("DestinationFloor")
                         .HasColumnType("int");
 
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsHandled")
                         .HasColumnType("bit");
 

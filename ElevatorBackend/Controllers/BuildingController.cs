@@ -60,7 +60,7 @@ namespace ElevatorBackend.Controllers
                     Name = b.Name,
                     NumberOfFloors = b.NumberOfFloors
                 }).ToList();
-
+            
             if (buildings == null || buildings.Count == 0)
                 return NotFound("No buildings found for this user.");
 

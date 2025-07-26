@@ -8,6 +8,8 @@ function BuildingDashboard({ building, onBack }) {
   const [connection, setConnection] = useState(null);
   const [error, setError] = useState('');
   const [destinationMap, setDestinationMap] = useState({});
+  const [callDirectionMap, setCallDirectionMap] = useState({});
+
 
   const ElevatorStatusMap = {
     0: 'Idle',
@@ -78,6 +80,11 @@ function BuildingDashboard({ building, onBack }) {
 
   const requestElevator = async (floorNumber, direction) => {
     try {
+
+          setCallDirectionMap((prev) => ({
+      ...prev,
+      [floorNumber]: direction
+    }));
       await axios.post('https://localhost:5001/api/ElevatorCall', {
         buildingId: building.id,
         requestedFloor: floorNumber,
@@ -136,8 +143,12 @@ function BuildingDashboard({ building, onBack }) {
               <div>
                 <p style={{ margin: '4px 0', fontSize: '18px' }}>Floor {floor}</p>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => requestElevator(floor, 1)}>Up</button>
-                  <button onClick={() => requestElevator(floor, 2)}>Down</button>
+                  {floor < building.numberOfFloors - 1 && (
+                    <button onClick={() => requestElevator(floor, 1)}>Up</button>
+                  )}
+                  {floor > 0 && (
+                    <button onClick={() => requestElevator(floor, 2)}>Down</button>
+                  )}
                 </div>
               </div>
 
@@ -162,29 +173,40 @@ function BuildingDashboard({ building, onBack }) {
 
 
 
+
 {elevator.status === 'WaitingForDestination' && elevator.lastCallId && (
   <div style={{ marginTop: '6px' }}>
-    {[...Array(building.numberOfFloors)].map((_, targetFloor) => (
-      targetFloor !== elevator.currentFloor &&
-      ((elevator.direction === 'Up' && targetFloor > elevator.currentFloor) ||
-        (elevator.direction === 'Down' && targetFloor < elevator.currentFloor)) && (
-        <button
-          key={targetFloor}
-          style={{ margin: '2px', fontSize: '12px' }}
-          onClick={() =>
-            handleDestinationSelect(
-              elevator.lastCallId,
-              targetFloor,
-              elevator.id
-            )
-          }
-        >
-          {targetFloor}
-        </button>
-                          )
-                        ))}
-                      </div>
-                    )}
+    {[...Array(building.numberOfFloors)].map((_, targetFloor) => {
+      if (targetFloor === elevator.currentFloor) return null;
+
+      const originalDirection = callDirectionMap[elevator.currentFloor];
+
+      if (
+        (originalDirection === 1 && targetFloor > elevator.currentFloor) || // 1 = Up
+        (originalDirection === 2 && targetFloor < elevator.currentFloor)    // 2 = Down
+      ) {
+        return (
+          <button
+            key={targetFloor}
+            style={{ margin: '2px', fontSize: '12px' }}
+            onClick={() =>
+              handleDestinationSelect(
+                elevator.lastCallId,
+                targetFloor,
+                elevator.id
+              )
+            }
+          >
+            {targetFloor}
+          </button>
+        );
+      }
+
+      return null;
+    })}
+  </div>
+)}
+
                   </div>
                 ))}
               </div>

@@ -4,4 +4,5 @@
     public required string Name { get; set; }
 
     public int NumberOfFloors { get; set; }
+
 }

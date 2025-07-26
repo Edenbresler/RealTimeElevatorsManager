@@ -24,18 +24,27 @@ function LoginRegister({ onLogin }) {
             withCredentials: true, // ✅ חובה כדי ש-CORS עם Cookies יעבוד
           }
         );
+        console.log(response.data);
 
-      if (response.status === 200) {
-        setError('');
+    if (response.status === 200) {
+      setError('');
+
+      if (mode === 'login') {
+        // התחברות רגילה
         onLogin({
           id: response.data.userId,
-          username: response.data.email
-        }); 
+          username: response.data.email,
+        });
+      } else {
+        // ✅ נרשם בהצלחה – מציגים הודעה ומעבירים למצב login
+        setMode('login');
+        setError('Registration successful! Please login.');
       }
-    } catch (err) {
-      setError('Login/Register failed. Please try again.');
     }
-  };
+  } catch (err) {
+    setError('Login/Register failed. Please try again.');
+  }
+};
 
   return (
     <div style={{ maxWidth: '300px', margin: '50px auto', textAlign: 'center' }}>

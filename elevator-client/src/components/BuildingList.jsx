@@ -9,13 +9,16 @@ function BuildingList({ userId, onSelectBuilding }) {
 
   useEffect(() => {
     const fetchBuildings = async () => {
+      
       try {
+        
+
         const response = await axios.get(
           `https://localhost:5001/api/Building/user/${userId}`
         );
         setBuildings(response.data.$values || []);
       } catch (err) {
-        setError('Failed to load buildings. Please try again.');
+        setError('');
       }
     };
 
@@ -31,6 +34,8 @@ function BuildingList({ userId, onSelectBuilding }) {
     }
 
     try {
+      console.log("Sending building with userId:", userId);
+
       const response = await axios.post(
         `https://localhost:5001/api/Building`,
         {

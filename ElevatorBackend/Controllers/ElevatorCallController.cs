@@ -6,6 +6,7 @@ using ElevatorBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace ElevatorBackend.Controllers
 {
     [ApiController]
@@ -30,6 +31,7 @@ namespace ElevatorBackend.Controllers
                 BuildingId = dto.BuildingId,
                 RequestedFloor = dto.RequestedFloor,
                 DestinationFloor = dto.DestinationFloor,
+                Direction = dto.Direction,
                 CallTime = DateTime.UtcNow,
                 IsHandled = false
             };

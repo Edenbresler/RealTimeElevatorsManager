@@ -56,7 +56,8 @@ namespace ElevatorBackend.Migrations
                     RequestedFloor = table.Column<int>(type: "int", nullable: false),
                     DestinationFloor = table.Column<int>(type: "int", nullable: true),
                     CallTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsHandled = table.Column<bool>(type: "bit", nullable: false)
+                    IsHandled = table.Column<bool>(type: "bit", nullable: false),
+                    Direction = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
