@@ -168,8 +168,20 @@ function BuildingDashboard({ building, onBack }) {
                   >
 <div><strong>ID:</strong> {elevator.id}</div>
 <div><strong>Floor:</strong> {elevator.currentFloor}</div>
-<div><strong>Status:</strong> {elevator.status}</div>
-<div><strong>Direction:</strong> {elevator.direction}</div>
+<div>
+  <strong>Status:</strong>{' '}
+  {typeof elevator.status === 'number'
+    ? ElevatorStatusMap[elevator.status]
+    : elevator.status}
+</div>
+
+<div>
+  <strong>Direction:</strong>{' '}
+  {typeof elevator.direction === 'number'
+    ? DirectionMap[elevator.direction]
+    : elevator.direction}
+</div>
+
 
 
 
