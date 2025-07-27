@@ -44,8 +44,8 @@ function BuildingList({ userId, onSelectBuilding }) {
           userId: userId,
         }
       );
-
-      // עדכון הרשימה לאחר ההוספה
+      console.log("Created building:", response.data);
+     
       setBuildings((prev) => [...prev, response.data]);
       setNewBuildingName('');
       setNewBuildingFloors('');
@@ -61,7 +61,7 @@ function BuildingList({ userId, onSelectBuilding }) {
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* טופס להוספת בניין */}
+     
       <div style={{ marginBottom: '30px', border: '1px solid gray', padding: '15px' }}>
         <h3>Add New Building</h3>
         <input
@@ -81,7 +81,7 @@ function BuildingList({ userId, onSelectBuilding }) {
         <button onClick={handleAddBuilding}>Add Building</button>
       </div>
 
-      {/* רשימת בניינים */}
+    
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {buildings.map((building) => (
           <li key={building.id} style={{ marginBottom: '10px', border: '1px solid gray', padding: '10px' }}>

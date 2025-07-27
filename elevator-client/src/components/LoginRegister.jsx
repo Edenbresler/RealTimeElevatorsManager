@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 
 function LoginRegister({ onLogin }) {
-  const [mode, setMode] = useState('login'); // 'login' or 'register'
+  const [mode, setMode] = useState('login'); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ function LoginRegister({ onLogin }) {
             Password: password,
           },
           {
-            withCredentials: true, // ✅ חובה כדי ש-CORS עם Cookies יעבוד
+            withCredentials: true, 
           }
         );
         console.log(response.data);
@@ -30,13 +30,13 @@ function LoginRegister({ onLogin }) {
       setError('');
 
       if (mode === 'login') {
-        // התחברות רגילה
+      
         onLogin({
           id: response.data.userId,
           username: response.data.email,
         });
       } else {
-        // ✅ נרשם בהצלחה – מציגים הודעה ומעבירים למצב login
+     
         setMode('login');
         setError('Registration successful! Please login.');
       }

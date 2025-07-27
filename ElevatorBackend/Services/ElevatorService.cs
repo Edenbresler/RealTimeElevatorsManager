@@ -63,10 +63,16 @@ public class ElevatorService
         {
             int? targetFloor = elevator.DestinationRequests.Any()
                 ? elevator.DestinationRequests.First().Floor
-                : elevator.Requests.FirstOrDefault()?.Floor;
+                : elevator.Requests
+                    .Where(r => r.Direction == Direction.Up || r.Direction == Direction.Down)
+                    .OrderBy(r => Math.Abs(r.Floor - elevator.CurrentFloor)) // Closest
+                    .ThenBy(r => r.RequestedAt) // If equal by request time order
+                    .Select(r => (int?)r.Floor)
+                    .FirstOrDefault();
 
 
-            // חישוב כיוון
+
+            // Calculate direction
             if (targetFloor > elevator.CurrentFloor)
             {
                 elevator.Direction = Direction.Up;
@@ -77,12 +83,12 @@ public class ElevatorService
                 elevator.Direction = Direction.Down;
                 elevator.Status = ElevatorStatus.MovingDown;
             }
-            else // ❗ elevator already at the target floor
+            else //elevator already at the target floor
             {
                 Console.WriteLine($"[Move] Elevator {elevator.Id} already at floor {elevator.CurrentFloor}");
 
 
-                lastCallId = _dbContext.ElevatorCallAssignments
+                lastCallId = dbContext.ElevatorCallAssignments
                     .Where(a => a.ElevatorId == elevator.Id)
                     .OrderByDescending(a => a.AssignmentTime)
                     .Select(a => (int?)a.ElevatorCallId)
@@ -101,11 +107,11 @@ public class ElevatorService
                     LastCallId = lastCallId
                 });
 
-                await Task.Delay(500); // זמן פתיחה לצורך הדמיה
+                await Task.Delay(500);
 
 
-                // לאחר הפתיחה: הסרת הבקשה שנמצאת בקומה הזו
-                // ננסה להסיר גם Regular וגם Destination
+                // remove the request at the current floor
+                // Try to remove both Regular and Destination requests
                 var requestToRemove = elevator.AllRequests
                     .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Type == RequestType.Regular);
                 var destinationToRemoveAtArrival = elevator.AllRequests
@@ -134,7 +140,7 @@ public class ElevatorService
 
                 await dbContext.SaveChangesAsync();
 
-                lastCallId = _dbContext.ElevatorCallAssignments
+                lastCallId = dbContext.ElevatorCallAssignments
                     .Where(a => a.ElevatorId == elevator.Id)
                     .OrderByDescending(a => a.AssignmentTime)
                     .Select(a => (int?)a.ElevatorCallId)
@@ -151,13 +157,14 @@ public class ElevatorService
                     LastCallId = lastCallId
                 });
 
-                break; // נחכה להזנת יעד מהנוסע – לא ממשיכים תנועה בשלב הזה
+                break; // Wait for destination input from the passenger
             }
 
-            // תזוזה בפועל
+            // Actual movement
             elevator.CurrentFloor += elevator.Direction == Direction.Up ? 1 : -1;
 
-            // נבדוק אם יש מישהו שרוצה להיכנס בקומה הזו, לפי כיוון התנועה
+            // // Check if someone wants to enter at this floor, based on the current direction
+
             var pickupRequest = elevator.Requests
                 .FirstOrDefault(r => r.Floor == elevator.CurrentFloor && r.Direction == elevator.Direction);
 
@@ -168,6 +175,24 @@ public class ElevatorService
                 elevator.AllRequests.Remove(pickupRequest);
                 dbContext.ElevatorRequests.Remove(pickupRequest);
                 elevator.Status = ElevatorStatus.WaitingForDestination;
+
+
+                lastCallId = dbContext.ElevatorCallAssignments
+                    .Where(a => a.ElevatorId == elevator.Id)
+                    .OrderByDescending(a => a.AssignmentTime)
+                    .Select(a => (int?)a.ElevatorCallId)
+                    .FirstOrDefault();
+
+                await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
+                {
+                    ElevatorId = elevator.Id,
+                    CurrentFloor = elevator.CurrentFloor,
+                    Direction = elevator.Direction.ToString(),
+                    Status = elevator.Status.ToString(),
+                    DoorStatus = elevator.DoorStatus.ToString(),
+                    LastCallId = lastCallId 
+                });
+
                 Console.WriteLine($"[165- SERVER] Elevator {elevator.Id} status → {elevator.Status}");
                 elevator.DoorStatus = DoorStatus.Open;
                 await Task.Delay(1000);
@@ -179,7 +204,7 @@ public class ElevatorService
             }
 
 
-            lastCallId = _dbContext.ElevatorCallAssignments
+            lastCallId = dbContext.ElevatorCallAssignments
                 .Where(a => a.ElevatorId == elevator.Id)
                 .OrderByDescending(a => a.AssignmentTime)
                 .Select(a => (int?)a.ElevatorCallId)
@@ -227,7 +252,7 @@ public class ElevatorService
             {
                 if (isDestination)
                 {
-                    // חזרנו מיעד - חוזרים למצב התחלתי
+                    // Returned from destination, reset to initial state
                     elevator.Status = ElevatorStatus.Idle;
                     elevator.Direction = Direction.None;
                     elevator.DoorStatus = DoorStatus.Closed;
@@ -235,11 +260,12 @@ public class ElevatorService
 
                 else
                 {
-                    // עצירה של קריאה - פותחים דלתות ומחכים ליעד
+
+                    // Stop for a call, open doors and wait for destination
                     OpenAndChooseFloor(elevator);
                 }
 
-                lastCallId = _dbContext.ElevatorCallAssignments
+                lastCallId = dbContext.ElevatorCallAssignments
                     .Where(a => a.ElevatorId == elevator.Id)
                     .OrderByDescending(a => a.AssignmentTime)
                     .Select(a => (int?)a.ElevatorCallId)
@@ -269,11 +295,11 @@ public class ElevatorService
         Console.WriteLine($"[SignalR] Sending Elevator Update: ID={elevator.Id}, Status={elevator.Status}, StatusStr={elevator.Status.ToString()}");
         Console.WriteLine($"[SERVER] Final status for elevator {elevator.Id}: {elevator.Status}");
 
-         lastCallId = _dbContext.ElevatorCallAssignments
-            .Where(a => a.ElevatorId == elevator.Id)
-            .OrderByDescending(a => a.AssignmentTime)
-            .Select(a => (int?)a.ElevatorCallId)
-            .FirstOrDefault();
+        lastCallId = dbContext.ElevatorCallAssignments
+           .Where(a => a.ElevatorId == elevator.Id)
+           .OrderByDescending(a => a.AssignmentTime)
+           .Select(a => (int?)a.ElevatorCallId)
+           .FirstOrDefault();
 
 
         await _hubContext.Clients.All.SendAsync("ElevatorUpdated", new ElevatorStatusDto
@@ -327,7 +353,7 @@ public class ElevatorService
         }
         else
         {
-            // במקום לשמור ב-PendingRequests, זה יטופל דרך ElevatorCalls (ראה שינויים עתידיים)
+            
         }
 
         _dbContext.SaveChanges();
@@ -358,7 +384,7 @@ public class ElevatorService
 
         _dbContext.SaveChanges();
 
-        if (elevator.Status == ElevatorStatus.Idle )
+        if (elevator.Status == ElevatorStatus.Idle)
         {
             _ = Task.Run(() => MoveToFloor(elevatorId));
         }

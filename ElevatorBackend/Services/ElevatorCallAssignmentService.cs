@@ -81,7 +81,7 @@ public class ElevatorCallAssignmentService : IElevatorCallAssignmentService
                 .FirstOrDefault();
         }
 
-        // בדיקה האם אפשר לטפל מיידית בקריאה
+        // Check if the call can be handled immediately
         bool canHandleNow =
             (selectedElevator.Status == ElevatorStatus.MovingUp && call.RequestedFloor > selectedElevator.CurrentFloor && selectedElevator.Direction == Direction.Up) ||
             (selectedElevator.Status == ElevatorStatus.MovingDown && call.RequestedFloor < selectedElevator.CurrentFloor && selectedElevator.Direction == Direction.Down) ||
@@ -89,8 +89,8 @@ public class ElevatorCallAssignmentService : IElevatorCallAssignmentService
 
         if (canHandleNow)
         {
-            var direction = call.RequestedFloor > selectedElevator.CurrentFloor ? Direction.Up :
-                            call.RequestedFloor < selectedElevator.CurrentFloor ? Direction.Down : Direction.None;
+            var direction = call.Direction;
+                           
 
             var request = new ElevatorRequest
             {
@@ -100,10 +100,10 @@ public class ElevatorCallAssignmentService : IElevatorCallAssignmentService
                 Direction = direction,
                 Type = RequestType.Regular
             };
-            selectedElevator.AddRequest(request); // רק בזיכרון
-            _context.ElevatorRequests.Add(request); // זה מה ששומר במסד הנתונים
+            selectedElevator.AddRequest(request); // In memory only
+            _context.ElevatorRequests.Add(request); // saved in database
 
-            // עדכון סטטוס למעלית אם היא הייתה במצב Idle
+            // Update elevator status if it was in Idle state
             if (selectedElevator.Status == ElevatorStatus.Idle)
             {
                 selectedElevator.Status = direction == Direction.Up ? ElevatorStatus.MovingUp :
@@ -113,10 +113,10 @@ public class ElevatorCallAssignmentService : IElevatorCallAssignmentService
                 selectedElevator.Direction = direction;
             }
 
-            call.IsHandled = true; // הקריאה טופלה מיידית
+            call.IsHandled = false; 
         }
 
-        // שמירת השיוך בין קריאה למעלית
+        // Save the assignment between the call and the elevator
         var newAssignment = new ElevatorCallAssignment
         {
             ElevatorCallId = call.Id,

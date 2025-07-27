@@ -16,7 +16,7 @@ namespace ElevatorBackend.Models
         public ICollection<ElevatorCall> ElevatorCalls { get; set; } = new List<ElevatorCall>();
 
 
-        // Navigation property (Bonus)
+       
         public List<Elevator> Elevators { get; set; } = new();
     }
 }

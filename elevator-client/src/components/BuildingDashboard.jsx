@@ -1,4 +1,4 @@
-// Updated UI labels to English and fixed destination input visibility
+
 import { useEffect, useState } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import axios from 'axios';
@@ -45,6 +45,7 @@ function BuildingDashboard({ building, onBack }) {
 
         connection.on('ElevatorUpdated', (updatedElevator) => {
           console.log("Direction from server:", updatedElevator.direction);
+          console.log("Elevator update from server:", updatedElevator);
 
           setElevators((prev) =>
             prev.map((e) =>
@@ -79,6 +80,7 @@ function BuildingDashboard({ building, onBack }) {
   }, [connection, building.id]);
 
   const requestElevator = async (floorNumber, direction) => {
+     console.log("elevator call req:", {floorNumber, direction});
     try {
 
           setCallDirectionMap((prev) => ({
@@ -88,7 +90,7 @@ function BuildingDashboard({ building, onBack }) {
       await axios.post('https://localhost:5001/api/ElevatorCall', {
         buildingId: building.id,
         requestedFloor: floorNumber,
-        destinationFloor: floorNumber,
+       
         direction: direction
       });
     } catch (err) {
@@ -113,6 +115,7 @@ function BuildingDashboard({ building, onBack }) {
   };
 
   return (
+    
     <div style={{ padding: '20px' }}>
       <button onClick={onBack}>⬅ Back to buildings</button>
       <h2>Building: {building.name}</h2>

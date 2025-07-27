@@ -1,4 +1,4 @@
-﻿// ElevatorCallController.cs
+﻿
 using ElevatorBackend.Data;
 using ElevatorBackend.Dtos;
 using ElevatorBackend.Models;
@@ -22,10 +22,11 @@ namespace ElevatorBackend.Controllers
             _elevatorCallService = elevatorCallService;
         }
 
-        // נוסע מחוץ למעלית מזמין מעלית
+       
         [HttpPost]
         public async Task<IActionResult> CreateCall([FromBody] ElevatorCallCreateDto dto)
         {
+            Console.WriteLine($"createCall - floor: {dto.RequestedFloor}, dir: {dto.Direction}");
             var call = new ElevatorCall
             {
                 BuildingId = dto.BuildingId,
@@ -40,7 +41,7 @@ namespace ElevatorBackend.Controllers
             return Ok("Call created");
         }
 
-        // נוסע בתוך המעלית בוחר יעד
+        
         [HttpPut("{id}/selectDestination")]
         public async Task<IActionResult> SelectDestination(int id, [FromBody] int destinationFloor)
         {
@@ -50,7 +51,6 @@ namespace ElevatorBackend.Controllers
             if (!result)
                 return NotFound();
 
-            // לאחר עדכון יעד, אפשר לעדכן את סטטוס המעלית והכיוון שלה כאן אם רוצים
             var call = await _context.ElevatorCalls.FindAsync(id);
             if (call != null)
             {
@@ -77,7 +77,7 @@ namespace ElevatorBackend.Controllers
                             Type = RequestType.Destination
                         });
 
-                        // נעדכן סטטוס ודלתות
+                      
                         elevator.DoorStatus = DoorStatus.Closed;
                         _context.Elevators.Update(elevator);
                         await _context.SaveChangesAsync();
@@ -88,7 +88,7 @@ namespace ElevatorBackend.Controllers
             return Ok("Destination updated");
         }
 
-        // המערכת מסמנת קריאה כמטופלת
+      
         [HttpPut("{id}/markHandled")]
         public async Task<IActionResult> MarkHandled(int id)
         {
@@ -99,7 +99,7 @@ namespace ElevatorBackend.Controllers
             return Ok("Call marked as handled");
         }
 
-        // כל הקריאות - שימושי לדיבוג או ניהול
+    
         [HttpGet]
         public async Task<IActionResult> GetAllCalls()
         {

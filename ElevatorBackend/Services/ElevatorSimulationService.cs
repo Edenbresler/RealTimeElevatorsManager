@@ -27,7 +27,7 @@ namespace ElevatorBackend.Services
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var elevatorService = scope.ServiceProvider.GetRequiredService<ElevatorService>();
 
-                // 🟢 שלב 1: טיפול בקריאות שלא טופלו
+                // Handle unhandled calls
                 var unhandledCalls = await dbContext.ElevatorCalls
                     .Where(c => !c.IsHandled)
                     .ToListAsync();
@@ -41,7 +41,8 @@ namespace ElevatorBackend.Services
 
                     Elevator? selected = null;
 
-                    // בדיקה אם יש מעלית מתאימה עכשיו
+                    // Check if there is a suitable elevator available now
+
                     var idle = elevators
                         .Where(e => e.Status == ElevatorStatus.Idle)
                         .OrderBy(e => Math.Abs(e.CurrentFloor - call.RequestedFloor))
@@ -62,7 +63,8 @@ namespace ElevatorBackend.Services
                             Type = RequestType.Regular
                         });
 
-                        // עדכון סטטוס
+                        // Update status
+
                         selected.Status = direction == Direction.Up ? ElevatorStatus.MovingUp :
                                           direction == Direction.Down ? ElevatorStatus.MovingDown :
                                           ElevatorStatus.Idle;
@@ -76,7 +78,7 @@ namespace ElevatorBackend.Services
 
                 await dbContext.SaveChangesAsync();
 
-                // 🟢 שלב 2: הפעלת מעליות
+                // Activate elevators
                 foreach (var elevator in elevatorService.GetElevatorsWithRequests())
 
                 {
@@ -104,7 +106,7 @@ namespace ElevatorBackend.Services
                     });
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
             }
         }
     }

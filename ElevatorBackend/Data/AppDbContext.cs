@@ -19,47 +19,47 @@ namespace ElevatorBackend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // הגדרה ל-ID של Elevator
+          
             modelBuilder.Entity<Elevator>()
                 .Property(e => e.Id)
                 .ValueGeneratedOnAdd();
 
-            // קשר Elevator -> Building
+         
             modelBuilder.Entity<Elevator>()
                 .HasOne(e => e.Building)
                 .WithMany(b => b.Elevators)
                 .HasForeignKey(e => e.BuildingId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // קשר Building -> User
+       
             modelBuilder.Entity<Building>()
                 .HasOne(b => b.User)
                 .WithMany(u => u.Buildings)
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // קשר ElevatorCall -> Building
+          
             modelBuilder.Entity<ElevatorCall>()
                 .HasOne(c => c.Building)
                 .WithMany(b => b.ElevatorCalls)
                 .HasForeignKey(c => c.BuildingId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // קשר ElevatorCallAssignment -> Elevator
+           
             modelBuilder.Entity<ElevatorCallAssignment>()
                 .HasOne(eca => eca.Elevator)
                 .WithMany(e => e.ElevatorCallAssignments)
                 .HasForeignKey(eca => eca.ElevatorId)
-                .OnDelete(DeleteBehavior.Restrict); // 🔁 תיקון לבעיה שלך
+                .OnDelete(DeleteBehavior.Restrict); 
 
-            // קשר ElevatorCallAssignment -> ElevatorCall
+          
             modelBuilder.Entity<ElevatorCallAssignment>()
                 .HasOne(eca => eca.ElevatorCall)
                 .WithMany(ec => ec.ElevatorCallAssignments)
                 .HasForeignKey(eca => eca.ElevatorCallId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // קשר Elevator -> ElevatorRequest (AllRequests)
+            
             modelBuilder.Entity<Elevator>()
                 .HasMany(e => e.AllRequests)
                 .WithOne(r => r.Elevator)

@@ -25,7 +25,7 @@ namespace ElevatorBackend.Services
             var assignment = new ElevatorCallAssignment
             {
                 ElevatorCallId = call.Id,
-                AssignmentTime = DateTime.UtcNow //אולי רק אחרי שהמעלית מיישמת את זה?????????
+                AssignmentTime = DateTime.UtcNow 
             };
 
             await assignmentService.AssignElevatorToCallAsync(assignment);

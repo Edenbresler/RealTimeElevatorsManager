@@ -8,7 +8,6 @@ namespace ElevatorBackend.Repositories
         Task<User?> GetUserByEmailAsync(string email);
         Task AddUserAsync(User user);
 
-        // Added login method
         Task<User?> LoginAsync(string email, string password);
     }
 }

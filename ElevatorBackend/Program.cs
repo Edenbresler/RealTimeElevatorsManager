@@ -3,8 +3,8 @@ using ElevatorBackend.Hubs;
 using ElevatorBackend.Repositories;
 using ElevatorBackend.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization; // ⬅️ חשוב
-using Microsoft.AspNetCore.Builder; // נדרש ל-CORS
+using System.Text.Json.Serialization; 
+using Microsoft.AspNetCore.Builder; 
 
 namespace ElevatorBackend
 {
@@ -24,7 +24,7 @@ namespace ElevatorBackend
 
             builder.Services.AddSignalR();
 
-            // ✅ Add CORS support
+            // CORS support
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy( "CORSPolicy", policy =>
@@ -62,7 +62,7 @@ namespace ElevatorBackend
 
             var app = builder.Build();
 
-            app.UseRouting(); //???????
+            app.UseRouting();
 
             // Use CORS
             app.UseCors("CORSPolicy");
