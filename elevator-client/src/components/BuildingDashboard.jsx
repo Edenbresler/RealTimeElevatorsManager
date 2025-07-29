@@ -10,6 +10,22 @@ function BuildingDashboard({ building, onBack }) {
   const [destinationMap, setDestinationMap] = useState({});
   const [callDirectionMap, setCallDirectionMap] = useState({});
 
+  const addElevator = async () => {
+  try {
+    await axios.post(`https://localhost:5001/api/Elevator`, {buildingId: building.id}, {
+      withCredentials: true
+    });
+  
+    const response = await axios.get(
+      `https://localhost:5001/api/Elevator/by-building/${building.id}`,
+      { withCredentials: true }
+    );
+    setElevators(response.data?.$values || []);
+  } catch (err) {
+    setError('Failed to add elevator.');
+  }
+};
+
 
   const ElevatorStatusMap = {
     0: 'Idle',
@@ -118,6 +134,7 @@ function BuildingDashboard({ building, onBack }) {
     
     <div style={{ padding: '20px' }}>
       <button onClick={onBack}>⬅ Back to buildings</button>
+      <button onClick={addElevator}>➕ Add Elevator</button>
       <h2>Building: {building.name}</h2>
       <p>Total Floors: {building.numberOfFloors}</p>
       {error && <p style={{ color: 'red' }}>{error}</p>}
